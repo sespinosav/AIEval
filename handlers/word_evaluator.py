@@ -11,7 +11,7 @@ def get_openai_api_key():
     global OPENAI_API_KEY
     if OPENAI_API_KEY is None:
         response = ssm_client.get_parameter(
-            Name="/AIEval/OPENAI_API_KEY", WithDecryption=True
+            Name="/EnglishLearning/OPENAI_API_KEY", WithDecryption=True
         )
         OPENAI_API_KEY = response["Parameter"]["Value"]
     return OPENAI_API_KEY
@@ -58,7 +58,7 @@ def lambda_handler(event, context):
 
         # Call the OpenAI API using gpt-3.5-turbo
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",

@@ -1,113 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Word Usage Evaluator</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* Animations and custom styles */
-    @keyframes scale-up {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
-    }
-    .scale-up {
-      animation: scale-up 0.5s ease-in-out;
-    }
-    input, textarea {
-      transition: all 0.3s ease;
-    }
-    input:focus, textarea:focus {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                  0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    button {
-      transition: all 0.3s ease;
-    }
-    button:hover {
-      transform: translateY(-1px);
-    }
-    button:active {
-      transform: translateY(1px);
-    }
-    #history > div {
-      transition: all 0.3s ease;
-    }
-    #history > div:hover {
-      transform: translateX(4px);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                  0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    #result {
-      transition: all 0.3s ease;
-    }
-    #result:not(.hidden) {
-      animation: slide-in 0.5s ease-out;
-    }
-    @keyframes slide-in {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    @media (max-width: 640px) {
-      .container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
-  <div class="container mx-auto px-4 py-8">
-    <div class="max-w-2xl mx-auto">
-      <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800 mb-2">Word Usage Evaluator</h1>
-        <p class="text-gray-600">Test your word usage skills and earn points!</p>
-        <div class="mt-4">
-          <span class="text-2xl font-bold text-purple-600">Points: </span>
-          <span id="points" class="text-2xl font-bold text-purple-600">0</span>
-        </div>
-      </div>
+<body>
+    <div class="container">
+        <h1>Welcome</h1>
+        <p>Select a functionality:</p>
 
-      <!-- Display the system-chosen word -->
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div class="mb-4 text-center">
-          <p class="font-medium text-gray-800">
-            <span>Word to Use: </span>
-            <span id="display-word" class="font-bold text-purple-600"></span>
-          </p>
+        <div class="frontend-options">
+            <a href="frontends/reading_writing/" class="frontend-link">Reading & Writing Evaluator</a>
+            <a href="frontends/word_evaluator/" class="frontend-link">Word Evaluator</a>
         </div>
-        <div class="mb-4">
-          <label for="sentence" class="block text-gray-700 font-medium mb-2">Your Sentence</label>
-          <textarea id="sentence" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" rows="3" placeholder="Write a sentence using the word above..."></textarea>
-        </div>
-        <button id="evaluate" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors">
-          Evaluate
-        </button>
-      </div>
-
-      <div id="result" class="bg-white rounded-lg shadow-lg p-6 hidden">
-        <div id="result-content" class="text-center">
-          <!-- Results will be inserted here -->
-        </div>
-      </div>
-
-      <div class="mt-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-3">History</h2>
-        <div id="history" class="space-y-3">
-          <!-- History items will be inserted here -->
-        </div>
-      </div>
     </div>
-  </div>
-  <script src="main.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>

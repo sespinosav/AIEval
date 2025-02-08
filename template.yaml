@@ -1,62 +1,137 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  AIEval - A short serverless microservice to evaluate the correct usage of a word in a sentence using AI.
-  This application uses a Lambda layer for dependencies.
+  English Learning Platform API - A serverless microservice for English language learning features including
+  word evaluation, reading comprehension, and writing assessment using AI capabilities.
+
+Globals:
+  Function:
+    Timeout: 29
 
 Resources:
-  # Define the Lambda layer resource
-  AIEvalDependenciesLayer:
+  # Shared Lambda layer for dependencies
+  EnglishLearningDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: AIEvalDependencies
-      Description: "Dependencies for AIEval (openai)"
-      ContentUri: aieval_layer/
+      LayerName: EnglishLearningDependencies
+      Description: "Dependencies for English Learning Platform (openai)"
+      ContentUri: dependencies_layer/
       CompatibleRuntimes:
-        - python3.8
+        - python3.12
 
-  # Define the API Gateway resource with proper CORS configuration
-  AIEvalApi:
+  # API Gateway with CORS configuration
+  EnglishLearningApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
       Cors:
-        AllowMethods: "'OPTIONS,POST'"
+        AllowMethods: "'OPTIONS,POST,GET'"
         AllowHeaders: "'Content-Type'"
         AllowOrigin: "'*'"
 
-  # Define the Lambda function and attach the layer
-  AIEvalFunction:
+  # Word Evaluation Lambda Function
+  WordEvaluatorFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: AIEval
-      Handler: main.lambda_handler
-      Runtime: python3.8
+      FunctionName: WordEvaluator
+      Handler: handlers/word_evaluator.lambda_handler
+      Runtime: python3.12
       CodeUri: .
       Layers:
-        - !Ref AIEvalDependenciesLayer
+        - !Ref EnglishLearningDependenciesLayer
       Policies:
         - AWSLambdaBasicExecutionRole
         - Statement:
             - Effect: Allow
               Action:
                 - ssm:GetParameter
-              Resource: "arn:aws:ssm:*:*:parameter/AIEval/OPENAI_API_KEY"
+              Resource: "arn:aws:ssm:*:*:parameter/EnglishLearning/OPENAI_API_KEY"
       Events:
-        AIEvalApiEvent:
+        ApiEvent:
           Type: Api
           Properties:
-            RestApiId: !Ref AIEvalApi
-            Path: /evaluator
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/word-evaluator
             Method: post
-        AIEvalOptionsEvent:
+        OptionsEvent:
           Type: Api
           Properties:
-            RestApiId: !Ref AIEvalApi
-            Path: /evaluator
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/word-evaluator
+            Method: options
+
+  # Reading Generator Lambda Function
+  ReadingGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ReadingGenerator
+      Handler: handlers/reading_generator.lambda_handler
+      Runtime: python3.12
+      CodeUri: .
+      Layers:
+        - !Ref EnglishLearningDependenciesLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: "arn:aws:ssm:*:*:parameter/EnglishLearning/OPENAI_API_KEY"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/reading-generator
+            Method: get
+        OptionsEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/reading-generator
+            Method: options
+
+  # Writing Evaluator Lambda Function
+  WritingEvaluatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: WritingEvaluator
+      Handler: handlers/writing_evaluator.lambda_handler
+      Runtime: python3.12
+      CodeUri: .
+      Layers:
+        - !Ref EnglishLearningDependenciesLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: "arn:aws:ssm:*:*:parameter/EnglishLearning/OPENAI_API_KEY"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/writing-evaluator
+            Method: post
+        OptionsEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/writing-evaluator
             Method: options
 
 Outputs:
   ApiEndpoint:
-    Description: "AIEval API Endpoint URL"
-    Value: !Sub "https://${AIEvalApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/evaluator"
+    Description: "English Learning Platform API Base URL"
+    Value: !Sub "https://${EnglishLearningApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  WordEvaluatorEndpoint:
+    Description: "Word Evaluator API Endpoint"
+    Value: !Sub "https://${EnglishLearningApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/word-evaluator"
+  ReadingGeneratorEndpoint:
+    Description: "Reading Generator API Endpoint"
+    Value: !Sub "https://${EnglishLearningApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/reading-generator"
+  WritingEvaluatorEndpoint:
+    Description: "Writing Evaluator API Endpoint"
+    Value: !Sub "https://${EnglishLearningApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/writing-evaluator"
