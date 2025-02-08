@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AIEval - A short serverless microservice to evaluate the correct usage of a word in a sentence using AI.
+  This application uses a Lambda layer for dependencies.
+
+Resources:
+  # Define the Lambda layer resource
+  AIEvalDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: AIEvalDependencies
+      Description: "Dependencies for AIEval (openai)"
+      ContentUri: aieval_layer/
+      CompatibleRuntimes:
+        - python3.8
+
+  # Define the API Gateway resource with proper CORS configuration
+  AIEvalApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'OPTIONS,POST'"
+        AllowHeaders: "'Content-Type'"
+        AllowOrigin: "'*'"
+
+  # Define the Lambda function and attach the layer
+  AIEvalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AIEval
+      Handler: main.lambda_handler
+      Runtime: python3.8
+      CodeUri: .
+      Layers:
+        - !Ref AIEvalDependenciesLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: "arn:aws:ssm:*:*:parameter/AIEval/OPENAI_API_KEY"
+      Events:
+        AIEvalApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AIEvalApi
+            Path: /evaluator
+            Method: post
+        AIEvalOptionsEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AIEvalApi
+            Path: /evaluator
+            Method: options
+
+Outputs:
+  ApiEndpoint:
+    Description: "AIEval API Endpoint URL"
+    Value: !Sub "https://${AIEvalApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/evaluator"
