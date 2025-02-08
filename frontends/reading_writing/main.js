@@ -135,14 +135,12 @@ function displayResults(evaluation) {
 
     // Update score bars and feedback for each category
     updateScoreCategory('grammar', evaluation.grammar_spelling);
-    updateScoreCategory('understanding', evaluation.understanding);
     updateScoreCategory('coherence', evaluation.coherence);
 
     // Calculate and update total score
     const newScore = Math.round(
         (evaluation.grammar_spelling.score +
-         evaluation.understanding.score +
-         evaluation.coherence.score) / 3
+         evaluation.coherence.score) / 2
     );
     totalScore += newScore;
     totalScoreDisplay.textContent = totalScore;
@@ -163,8 +161,7 @@ function updateScoreCategory(category, data) {
 function updateHistory(evaluation) {
     const averageScore = Math.round(
         (evaluation.grammar_spelling.score +
-         evaluation.understanding.score +
-         evaluation.coherence.score) / 3
+         evaluation.coherence.score) / 2
     );
 
     const historyItem = document.createElement('div');
@@ -189,6 +186,7 @@ function resetExercise() {
     writingSection.classList.add('hidden');
     articleSection.classList.remove('hidden');
     summaryInput.value = '';
+    
     wordCountElement.textContent = 'Words: 0';
     // Hide the timer and button until the new article loads
     timerElement.style.display = 'none';
