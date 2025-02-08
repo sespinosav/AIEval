@@ -7,7 +7,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #f0f0f0; /* Example background color */
+    background-color: #F3F4FF; /* Example background color */
 }
 
 .container {
@@ -39,7 +39,7 @@ h1 {
 }
 
 .frontend-link:hover {
-    background-color: #7C3AED; /* Darker purple on hover */
+    background-color: #6D28D9; /* Darker purple on hover */
 }
 
 

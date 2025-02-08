@@ -1,93 +1,99 @@
+from dataclasses import dataclass
+from typing import Dict, Any, Optional
 import json
-import boto3
-from openai import OpenAI
+import logging
+from openai.types.chat import ChatCompletion
+from base_handler import BaseLambdaHandler, ValidationError
 
-# Create a global SSM client and cache for the API key
-ssm_client = boto3.client("ssm")
-OPENAI_API_KEY = None
-
-
-def get_openai_api_key():
-    global OPENAI_API_KEY
-    if OPENAI_API_KEY is None:
-        response = ssm_client.get_parameter(
-            Name="/EnglishLearning/OPENAI_API_KEY", WithDecryption=True
-        )
-        OPENAI_API_KEY = response["Parameter"]["Value"]
-    return OPENAI_API_KEY
+# Configure logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
-def lambda_handler(event, context):
-    # Define CORS headers
-    cors_headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-    }
+@dataclass
+class WordUsageRequest:
+    """Request data for word usage evaluation."""
 
-    # Handle preflight OPTIONS request
-    if event.get("httpMethod", "") == "OPTIONS":
-        return {"statusCode": 200, "headers": cors_headers, "body": ""}
+    word: str
+    sentence: str
 
-    try:
-        # Parse the input JSON from the request body
-        body = json.loads(event.get("body", "{}"))
-        word = body.get("word")
-        sentence = body.get("sentence")
 
-        if not word or not sentence:
-            return {
-                "statusCode": 400,
-                "headers": cors_headers,
-                "body": json.dumps(
-                    {"error": "Both 'word' and 'sentence' parameters are required."}
-                ),
-            }
+class WordUsageHandler(BaseLambdaHandler[WordUsageRequest, Dict[str, Any]]):
+    """Handler for evaluating word usage in sentences."""
 
-        # Retrieve the OpenAI API key from SSM
-        openai_api_key = get_openai_api_key()
+    def validate_request(self, body: Dict[str, Any]) -> WordUsageRequest:
+        """
+        Validates word usage evaluation request.
 
-        # Initialize the OpenAI client
-        client = OpenAI(api_key=openai_api_key)
+        Args:
+            body: The request body dictionary
 
-        # Construct the prompt
-        prompt = (
-            f"Evaluate the usage of the word '{word}' in the following sentence: \"{sentence}\". "
-            "Return a JSON with two fields: 'correct' (a boolean) and 'explanation' (a string explaining your decision)."
-        )
+        Returns:
+            WordUsageRequest object
 
-        # Call the OpenAI API using gpt-3.5-turbo
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a grammar and usage evaluator. Respond only with valid JSON.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.7,
-        )
+        Raises:
+            ValidationError: If validation fails
+        """
+        if not isinstance(body.get("word"), str):
+            raise ValidationError("'word' must be a string")
+        if not isinstance(body.get("sentence"), str):
+            raise ValidationError("'sentence' must be a string")
 
-        answer_text = response.choices[0].message.content.strip()
+        word = body["word"].strip()
+        sentence = body["sentence"].strip()
+
+        if not word:
+            raise ValidationError("'word' cannot be empty")
+        if not sentence:
+            raise ValidationError("'sentence' cannot be empty")
+
+        return WordUsageRequest(word=word, sentence=sentence)
+
+    def process_request(self, request: WordUsageRequest) -> Dict[str, Any]:
+        """
+        Processes word usage evaluation request using OpenAI API.
+
+        Args:
+            request: The validated request object
+
+        Returns:
+            Dictionary containing evaluation results
+        """
         try:
-            answer_json = json.loads(answer_text)
-        except json.JSONDecodeError as e:
-            # If we can't parse the JSON, create a structured response
-            answer_json = {
-                "correct": False,
-                "explanation": f"Could not parse OpenAI response: {str(e)}. Response was: {answer_text}",
-            }
+            response: ChatCompletion = self.openai_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a grammar and usage evaluator. Respond only with valid JSON.",
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Evaluate the usage of the word '{request.word}' in the following sentence: "
+                            f"\"{request.sentence}\". Return a JSON with two fields: 'correct' (a boolean) "
+                            "and 'explanation' (a string explaining your decision)."
+                        ),
+                    },
+                ],
+                temperature=0.7,
+            )
 
-        return {
-            "statusCode": 200,
-            "headers": cors_headers,
-            "body": json.dumps(answer_json),
-        }
-    except Exception as e:
-        print(f"Error: {str(e)}")  # This will log to CloudWatch
-        return {
-            "statusCode": 500,
-            "headers": cors_headers,
-            "body": json.dumps({"error": str(e)}),
-        }
+            answer_text = response.choices[0].message.content.strip()
+            return json.loads(answer_text)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse OpenAI response: {answer_text}")
+            return {
+                "correct": False,
+                "explanation": f"Invalid response format from language model: {str(e)}",
+            }
+        except Exception as e:
+            logger.error(f"Error processing request: {str(e)}")
+            raise
+
+
+# Lambda handler function
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    handler = WordUsageHandler()
+    return handler.handle(event, context)

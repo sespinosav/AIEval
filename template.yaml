@@ -34,9 +34,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: WordEvaluator
-      Handler: handlers/word_evaluator.lambda_handler
+      Handler: word_evaluator.lambda_handler
       Runtime: python3.12
-      CodeUri: .
+      CodeUri: ./handlers
       Layers:
         - !Ref EnglishLearningDependenciesLayer
       Policies:
@@ -65,9 +65,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: ReadingGenerator
-      Handler: handlers/reading_generator.lambda_handler
+      Handler: reading_generator.lambda_handler
       Runtime: python3.12
-      CodeUri: .
+      CodeUri: ./handlers
       Layers:
         - !Ref EnglishLearningDependenciesLayer
       Policies:
@@ -96,9 +96,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: WritingEvaluator
-      Handler: handlers/writing_evaluator.lambda_handler
+      Handler: writing_evaluator.lambda_handler
       Runtime: python3.12
-      CodeUri: .
+      CodeUri: ./handlers
       Layers:
         - !Ref EnglishLearningDependenciesLayer
       Policies:
@@ -122,6 +122,37 @@ Resources:
             Path: /api/v1/writing-evaluator
             Method: options
 
+  # Verb Tense Evaluator Lambda Function
+  TenseEvaluatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: TenseEvaluator
+      Handler: verb_tense_evaluator.lambda_handler
+      Runtime: python3.12
+      CodeUri: ./handlers
+      Layers:
+        - !Ref EnglishLearningDependenciesLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: "arn:aws:ssm:*:*:parameter/EnglishLearning/OPENAI_API_KEY"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/verb-tense-evaluator
+            Method: post
+        OptionsEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EnglishLearningApi
+            Path: /api/v1/verb-tense-evaluator
+            Method: options
+
 Outputs:
   ApiEndpoint:
     Description: "English Learning Platform API Base URL"
@@ -135,3 +166,6 @@ Outputs:
   WritingEvaluatorEndpoint:
     Description: "Writing Evaluator API Endpoint"
     Value: !Sub "https://${EnglishLearningApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/writing-evaluator"
+  TenseEvaluatorEndpoint:
+    Description: "Tense Evaluator API Endpoint"
+    Value: !Sub "https://${EnglishLearningApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/verb-tense-evaluator"
