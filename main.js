@@ -2,10 +2,8 @@
 const API_ENDPOINT = 'https://t82wqf0so0.execute-api.us-east-1.amazonaws.com/Prod/evaluator';
 let points = 0;
 
-// Sample list of common words (a subset; ideally replace with the full 500-word list)
-// Each word object includes a "word" and a "difficulty" property. 
-// (For example, you might mark lower-frequency words as "difficult".)
-// For demonstration, a few sample words are given.
+// Sample list of common words with difficulty levels.
+// (Ideally replace with your full 500-word list.)
 const commonWords = [
   { word: "the",           difficulty: "easy" },
   { word: "of",            difficulty: "easy" },
@@ -224,8 +222,6 @@ const commonWords = [
   { word: "gregarious",      difficulty: "difficult" },
   { word: "perfunctory",     difficulty: "difficult" }
 ];
-
-
 let currentWord = null;
 
 // DOM Elements
@@ -256,7 +252,7 @@ function handleEnter(e) {
 }
 
 // Helper function to check punctuation:
-// Checks if sentence starts with uppercase letter and ends with proper punctuation (. ! ?)
+// It checks if the sentence starts with an uppercase letter and ends with proper punctuation (. ! ?)
 function checkPunctuation(sentence) {
   let score = 0;
   let explanation = '';
@@ -273,6 +269,35 @@ function checkPunctuation(sentence) {
   return { score, explanation };
 }
 
+// Function to calculate base points for the word usage
+function calculateWordPoints(isCorrect, difficulty) {
+  if (isCorrect) {
+    let points = 10; // Base points for correct usage
+    if (difficulty === "difficult") {
+      points += 5; // Bonus for using a difficult word correctly
+    }
+    return points;
+  } else {
+    // Fixed penalty for incorrect usage
+    return -5;
+  }
+}
+
+// Function to calculate punctuation points based on the punctuation score
+// For correct usage, bonuses are given. For incorrect usage, no bonus is awarded.
+function calculatePunctuationPoints(punctuationScore, isCorrect) {
+  if (isCorrect) {
+    if (punctuationScore === 2) return 2;
+    else if (punctuationScore === 1) return 1;
+    else return -2;
+  } else {
+    // When the word usage is incorrect, do not award any positive punctuation bonus.
+    if (punctuationScore === 2) return 0;
+    else if (punctuationScore === 1) return -1;
+    else return -2;
+  }
+}
+
 async function evaluateUsage() {
   const sentence = sentenceInput.value.trim();
 
@@ -281,12 +306,12 @@ async function evaluateUsage() {
     return;
   }
 
-  // Disable button and show loading state
+  // Disable the button and show a loading state
   evaluateButton.disabled = true;
   evaluateButton.innerHTML = '<span class="animate-pulse">Evaluating...</span>';
 
   try {
-    // Call your evaluator API with the current word and the sentence
+    // Call the evaluator API with the current word and the sentence
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -294,31 +319,14 @@ async function evaluateUsage() {
     });
     const data = await response.json();
 
-    // Check punctuation
+    // Check punctuation of the sentence
     const punctuationResult = checkPunctuation(sentence);
 
-    // Compute points for this round
-    let roundPoints = 0;
-    if (data.correct) {
-      roundPoints += 10; // base points for correct usage
-      if (currentWord.difficulty === "difficult") {
-        roundPoints += 5; // bonus for difficult word correct usage
-      }
-    } else {
-      if (currentWord.difficulty === "easy") {
-        roundPoints -= 5; // extra penalty for failing an easy word
-      }
-    }
-    // Adjust points based on punctuation score:
-    if (punctuationResult.score === 2) {
-      roundPoints += 2;
-    } else if (punctuationResult.score === 1) {
-      roundPoints += 1;
-    } else {
-      roundPoints -= 2;
-    }
+    // Calculate points from word usage and punctuation
+    const wordPoints = calculateWordPoints(data.correct, currentWord.difficulty);
+    const punctuationPoints = calculatePunctuationPoints(punctuationResult.score, data.correct);
+    const roundPoints = wordPoints + punctuationPoints;
 
-    // Update result display with API explanation and punctuation explanation
     showResult(data, punctuationResult, roundPoints);
     updateHistory(data, sentence, roundPoints);
     updatePoints(roundPoints);
@@ -327,7 +335,6 @@ async function evaluateUsage() {
   } finally {
     evaluateButton.disabled = false;
     evaluateButton.textContent = 'Evaluate';
-    // Clear sentence input and choose a new word
     sentenceInput.value = '';
     selectRandomWord();
   }
